@@ -3,12 +3,20 @@ package server;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.ArrayList;
 
 public class Server {
 
+  //Commands
   private final static String terminationChar = "\\e";
+  private final static String connectCmd = "\\con";
+  private final static String dissconnectCmd = "\\dis";
+
+  private static int clientID = 0;
   private static DatagramSocket socket;
   private static boolean running;
+
+  private static ArrayList<ClientInfo> clients = new ArrayList<>();
 
   //Start the sever
   public static void start(int port) {
@@ -33,7 +41,9 @@ public class Server {
     try {
       message += terminationChar;
       byte[] data = message.getBytes();
-
+      DatagramPacket packet = new DatagramPacket(data, data.length, address, port);
+      socket.send(packet);
+      System.out.println("Send message to, " + address.getHostAddress() + ":" + port);
     } catch (Exception ex) {
       ex.printStackTrace();
     }
@@ -55,7 +65,9 @@ public class Server {
             message = message.substring(0, message.indexOf(terminationChar)); //Every message needs a termination character
 
             //TODO: Manage message...
-            broadcast(message);
+            if (!isCommand(message, packet)) {
+              broadcast(message);
+            }
 
           }
         } catch (Exception ex) {
@@ -65,6 +77,26 @@ public class Server {
     };
 
     listenThread.start();
+  }
+
+  /**
+   * Server commands:
+   *   \con:[name] -> Connects client to server
+   *   \dis:[id] -> Disconnect client from server
+   * @param message
+   * @param packet
+   * @return
+   */
+  private static boolean isCommand(String message, DatagramPacket packet) {
+    if (message.startsWith(connectCmd)) {
+
+      String name = message.substring(message.indexOf(":") + 1); //Remove name after colon
+      clients.add(new ClientInfo(name, ++clientID, packet.getAddress(), packet.getPort()));
+      broadcast("User " + name + " connected!");
+
+      return true;
+    }
+    return false;
   }
 
   //Stop the server
