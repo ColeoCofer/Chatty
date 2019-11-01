@@ -10,7 +10,7 @@ public class Server {
   //Commands
   private final static String terminationChar = "\\e";
   private final static String connectCmd = "\\con";
-  private final static String dissconnectCmd = "\\dis";
+  private final static String disconnectCmd = "\\dis";
 
   private static int clientID = 0;
   private static DatagramSocket socket;
@@ -33,7 +33,9 @@ public class Server {
 
   //Sends a message to every client connected to the server
   private static void broadcast(String message) {
-
+    for (ClientInfo info : clients) {
+      send(message, info.getAddress(), info.getPort());
+    }
   }
 
   //Sends a message to a specific user
@@ -101,7 +103,7 @@ public class Server {
 
   //Stop the server
   public static void stop() {
-
+    running = false;
   }
 
 }
