@@ -1,9 +1,13 @@
 package server;
 
+/**
+ * Start Chat Server First -> Then the client window
+ */
+
 public class ChatServer {
 
   public static void main(String[] args) {
-    Server.start(6666);
+    Server.start(Server.PORT);
   }
 
 }

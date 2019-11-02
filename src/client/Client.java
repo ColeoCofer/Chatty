@@ -1,60 +1,56 @@
-package server;
+package client;
+
+import static server.Server.connectCmd;
+import static server.Server.terminationChar;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.util.ArrayList;
 
-public class Server {
+public class Client {
 
-  public final static int PORT = 52866;
-
-  //Commands
-  public final static String terminationChar = "\\e";
-  public final static String connectCmd = "\\con";
-  public final static String disconnectCmd = "\\dis";
-
-  private static int clientID = 0;
   private static DatagramSocket socket;
-  private static boolean running;
+  private InetAddress address;
+  private int port;
+  private String name;
+  private boolean running;
 
-  private static ArrayList<ClientInfo> clients = new ArrayList<>();
-
-  //Start the sever
-  public static void start(int port) {
-    try
-    {
-      socket = new DatagramSocket(port);
+  public Client(String name, String address, int port) {
+    try {
+      this.name = name;
+      this.address = InetAddress.getByName(address);
+      this.port = port;
+      socket = new DatagramSocket();
       running = true;
       listen();
-      System.out.println("Server started on port, " + port);
     } catch (Exception ex) {
       ex.printStackTrace();
     }
+
+    send("\\con:" + name);
+
   }
 
-  //Sends a message to every client connected to the server
-  private static void broadcast(String message) {
-    for (ClientInfo info : clients) {
-      send(message, info.getAddress(), info.getPort());
-    }
-  }
-
-  //Sends a message to a specific user
-  private static void send(String message, InetAddress address, int port) {
+  public void send(String message) {
     try {
+
+      //Get rid of name when a command is sent to the server
+      if (!message.startsWith("\\")) {
+        message = name + ":" + message;
+      }
+
       message += terminationChar;
       byte[] data = message.getBytes();
       DatagramPacket packet = new DatagramPacket(data, data.length, address, port);
       socket.send(packet);
-      System.out.println("Sent message to, " + address.getHostAddress() + ":" + port);
+      System.out.println("Send message to, " + address.getHostAddress() + ":" + port);
     } catch (Exception ex) {
       ex.printStackTrace();
     }
   }
 
   //Waits for messages on a separate thread
-  private static void listen() {
+  private void listen() {
 
     //socket.receive will pause current thread until it receives a message
     Thread listenThread = new Thread("Chat Listener") {
@@ -70,7 +66,8 @@ public class Server {
 
             //TODO: Manage message...
             if (!isCommand(message, packet)) {
-              broadcast(message);
+              ClientChatWindow.printToConsole(message);
+              System.out.println("Message: " + message);
             }
 
           }
@@ -93,19 +90,11 @@ public class Server {
    */
   private static boolean isCommand(String message, DatagramPacket packet) {
     if (message.startsWith(connectCmd)) {
-
-      String name = message.substring(message.indexOf(":") + 1); //Remove name after colon
-      clients.add(new ClientInfo(name, ++clientID, packet.getAddress(), packet.getPort()));
-      broadcast("User " + name + " connected!");
-
+      System.out.println("Yes, it's a command");
       return true;
     }
+    System.out.println("Not a command");
     return false;
-  }
-
-  //Stop the server
-  public static void stop() {
-    running = false;
   }
 
 }
